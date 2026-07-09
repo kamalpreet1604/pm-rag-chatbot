@@ -1,0 +1,463 @@
+<title>How a YouTube Transcript Becomes a Chatbot Answer</title>
+<style>
+  @font-face {
+    font-family: 'Iowan-stack';
+  }
+
+  :root {
+    --paper: #f6f3ec;
+    --paper-raised: #fffdf8;
+    --ink: #1c1a15;
+    --ink-soft: #55503f;
+    --line: #ddd6c4;
+    --accent: #b97a1f;
+    --accent-strong: #8f5c14;
+    --accent-tint: #f1e0bf;
+    --code-bg: #efe9d8;
+    --code-border: #d9d0b6;
+    --good: #4c7a4c;
+    --shadow: 0 1px 2px rgba(28,26,21,0.06), 0 6px 20px -8px rgba(28,26,21,0.12);
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #161511;
+    --paper-raised: #1f1d18;
+    --ink: #ece7d9;
+    --ink-soft: #b0a891;
+    --line: #37342a;
+    --accent: #e3a94d;
+    --accent-strong: #f0bd6e;
+    --accent-tint: #3a2e17;
+    --code-bg: #1c1a15;
+    --code-border: #37342a;
+    --good: #7fb37f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161511;
+      --paper-raised: #1f1d18;
+      --ink: #ece7d9;
+      --ink-soft: #b0a891;
+      --line: #37342a;
+      --accent: #e3a94d;
+      --accent-strong: #f0bd6e;
+      --accent-tint: #3a2e17;
+      --code-bg: #1c1a15;
+      --code-border: #37342a;
+      --good: #7fb37f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 64px 28px 96px;
+  }
+
+  .eyebrow {
+    font-family: ui-monospace, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 1px;
+    background: var(--accent-strong);
+    display: inline-block;
+  }
+
+  h1 {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    font-size: clamp(30px, 4.4vw, 42px);
+    line-height: 1.12;
+    margin: 0 0 14px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  .dek {
+    font-size: 18px;
+    color: var(--ink-soft);
+    max-width: 56ch;
+    margin: 0 0 44px;
+    text-wrap: balance;
+  }
+
+  h2 {
+    font-family: 'Iowan Old Style', Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 56px 0 6px;
+    letter-spacing: -0.005em;
+  }
+
+  .section-note {
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    margin: 0 0 22px;
+    max-width: 62ch;
+  }
+
+  p { max-width: 66ch; }
+  p.tight { margin: 8px 0 0; }
+
+  code, .mono {
+    font-family: ui-monospace, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+    font-size: 0.88em;
+  }
+
+  code {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 4px;
+    padding: 0.1em 0.4em;
+  }
+
+  /* --- pipeline diagram --- */
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    align-items: stretch;
+    margin: 8px 0 6px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--paper-raised);
+    box-shadow: var(--shadow);
+  }
+
+  .stage {
+    padding: 18px 14px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-right: 1px solid var(--line);
+  }
+  .stage:last-child { border-right: none; }
+
+  .stage:not(:last-child)::after {
+    content: "→";
+    position: absolute;
+    right: -11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 15px;
+    background: var(--paper-raised);
+    width: 20px;
+    text-align: center;
+    z-index: 2;
+  }
+
+  .stage-label {
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-strong);
+  }
+
+  .stage-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .stage-file {
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 10.5px;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 640px) {
+    .pipeline { grid-template-columns: 1fr; }
+    .stage { border-right: none; border-bottom: 1px solid var(--line); }
+    .stage:not(:last-child)::after { content: "↓"; right: 50%; top: auto; bottom: -11px; transform: translateX(50%); }
+  }
+
+  /* --- numbered steps --- */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    counter-reset: step;
+    border-top: 1px solid var(--line);
+  }
+
+  .step {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 18px;
+    padding: 26px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .step-num {
+    font-family: 'Iowan Old Style', Georgia, serif;
+    font-size: 22px;
+    color: var(--accent);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .step-num::before {
+    content: counter(step);
+  }
+
+  .step-title {
+    font-weight: 700;
+    font-size: 16.5px;
+    margin: 0 0 4px;
+  }
+
+  .step-body { max-width: 62ch; }
+
+  .file-tag {
+    display: inline-block;
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 11.5px;
+    color: var(--accent-strong);
+    background: var(--accent-tint);
+    border-radius: 4px;
+    padding: 2px 7px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 12px 0 0;
+    font-family: ui-monospace, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .cmt { color: var(--ink-soft); }
+  .kw { color: var(--accent-strong); }
+
+  /* --- callout --- */
+  .callout {
+    margin: 40px 0;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--paper-raised);
+    border-radius: 0 8px 8px 0;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .callout-title {
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent-strong);
+    margin-bottom: 8px;
+  }
+
+  .callout ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .callout li {
+    margin: 6px 0;
+    font-size: 14.5px;
+  }
+  .callout li::marker { color: var(--accent); }
+
+  /* --- commands --- */
+  .cmd-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+    font-size: 14px;
+    overflow-x: auto;
+    display: block;
+  }
+  .cmd-table tbody { display: table; width: 100%; }
+
+  .cmd-table td {
+    padding: 12px 12px;
+    border-top: 1px solid var(--line);
+    vertical-align: top;
+  }
+  .cmd-table tr:first-child td { border-top: none; }
+
+  .cmd-table td:first-child {
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 12.5px;
+    color: var(--accent-strong);
+    white-space: nowrap;
+    width: 1%;
+    padding-right: 20px;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .step, .callout, .pipeline { transition: none; }
+  }
+</style>
+
+<div class="page">
+
+  <div class="eyebrow">RAGUdemy · ingestion pipeline</div>
+  <h1>How a YouTube video becomes something the chatbot can answer from</h1>
+  <p class="dek">One URL in a text file turns into a searchable chunk of knowledge. Here's the exact path it travels through this repo, file by file.</p>
+
+  <h2>The pipeline, end to end</h2>
+  <p class="section-note">Five hops from a pasted link to a vector the chatbot can retrieve. Everything here happens inside <code>uv run python -m src.ingest</code>.</p>
+
+  <div class="pipeline">
+    <div class="stage">
+      <span class="stage-label">Input</span>
+      <span class="stage-name">URL list</span>
+      <span class="stage-file">data/youtube_urls.txt</span>
+    </div>
+    <div class="stage">
+      <span class="stage-label">Extract ID</span>
+      <span class="stage-name">Regex on the URL</span>
+      <span class="stage-file">youtube_loader.py</span>
+    </div>
+    <div class="stage">
+      <span class="stage-label">Fetch</span>
+      <span class="stage-name">Caption transcript</span>
+      <span class="stage-file">youtube_transcript_api</span>
+    </div>
+    <div class="stage">
+      <span class="stage-label">Wrap</span>
+      <span class="stage-name">LangChain Document</span>
+      <span class="stage-file">source_type: "youtube"</span>
+    </div>
+    <div class="stage">
+      <span class="stage-label">Store</span>
+      <span class="stage-name">Chunk → embed → save</span>
+      <span class="stage-file">vectorstore.py</span>
+    </div>
+  </div>
+
+  <h2>Walking through it</h2>
+  <p class="section-note">The same five hops, expanded with the actual code that runs at each one.</p>
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">Drop the link in a text file<span class="file-tag">data/youtube_urls.txt</span></p>
+        <p class="step-body tight">One URL per line. Lines starting with <code>#</code> are treated as comments and skipped. This file is the only thing you edit by hand — no code changes needed to add a video.</p>
+        <pre><span class="cmt"># data/youtube_urls.txt</span>
+https://youtu.be/GNdIb-h5BPg?si=ZUcnHHlDbbD0-epf</pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">Run ingestion</p>
+        <p class="step-body tight">This kicks off the whole batch pipeline — PDFs, markdown, web cache, and YouTube all get reloaded and rewritten to the vector store in one pass.</p>
+        <pre><span class="kw">uv run</span> python -m src.ingest</pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">The loader pulls the video ID out of the URL<span class="file-tag">youtube_loader.py</span></p>
+        <p class="step-body tight">A single regex handles both link shapes YouTube hands out — the short <code>youtu.be/…</code> form and the long <code>watch?v=…</code> form — and grabs the 11-character ID either way.</p>
+        <pre>re.search(<span class="cmt">r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})"</span>, url)</pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">The transcript is fetched and joined into one block of text</p>
+        <p class="step-body tight"><code>youtube_transcript_api</code> returns the video's caption track as timed snippets. The loader throws away the timestamps and joins the text with spaces — so this is good for "what does the video say," not "what's said at 3:42."</p>
+        <pre>fetched = ytt_api.fetch(video_id)
+full_text = <span class="cmt">" ".join(s.text for s in fetched)</span></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">It's wrapped as a tagged Document, then chunked and embedded like everything else</p>
+        <p class="step-body tight">The <code>source_type: "youtube"</code> tag is what lets the chatbot cite where an answer came from later. From here it's indistinguishable from a PDF or markdown page — same splitter, same <code>all-MiniLM-L6-v2</code> embeddings, same Pinecone/Chroma store.</p>
+        <pre>Document(
+  page_content=full_text,
+  metadata={<span class="cmt">"source": url, "source_type": "youtube"</span>}
+)</pre>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">Worth knowing before you add videos</div>
+    <ul>
+      <li><strong>Public videos only.</strong> The loader's own docstring warns it off paywalled course platforms — it needs an openly available caption track.</li>
+      <li><strong>No transcript = silent skip.</strong> If captions are off, or the video is private or age-restricted, <code>fetch()</code> raises, the loader prints an error, and that one video is dropped — the rest of ingestion still runs.</li>
+      <li><strong>Timestamps don't survive.</strong> The whole transcript becomes one flat string before chunking, so retrieval can point you to a video but not a moment in it.</li>
+      <li><strong>Not exported from the package.</strong> <code>youtube_loader</code> is imported directly by <code>ingest.py</code> rather than through <code>src/loaders/__init__.py</code> — intentional, matches how the other loaders are wired in.</li>
+    </ul>
+  </div>
+
+  <h2>Commands you'll actually use</h2>
+  <table class="cmd-table">
+    <tbody>
+      <tr>
+        <td>uv run python -m src.ingest</td>
+        <td>Rebuild the whole knowledge base — run this after editing the URL file.</td>
+      </tr>
+      <tr>
+        <td>uv run python -m src.loaders.youtube_loader</td>
+        <td>Run just the YouTube loader standalone and print what it fetched — for debugging one video without a full rebuild.</td>
+      </tr>
+      <tr>
+        <td>uv run streamlit run app.py</td>
+        <td>Launch the chat UI to ask questions against whatever's currently indexed.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <footer>src/loaders/youtube_loader.py · src/ingest.py</footer>
+
+</div>
