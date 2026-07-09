@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RAG PM Chatbot — Kanban Board</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --col-bg: #ebecf0;
+    --card-bg: #ffffff;
+    --text: #172b4d;
+    --text-dim: #5e6c84;
+    --border: #dfe1e6;
+    --accent: #0052cc;
+    --high: #de350b;
+    --med: #ff991f;
+    --low: #36b37e;
+    --done: #6b778c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --col-bg: #161b22;
+      --card-bg: #1e242c;
+      --text: #e6edf3;
+      --text-dim: #9aa7b2;
+      --border: #30363d;
+      --accent: #58a6ff;
+      --high: #f85149;
+      --med: #ffa657;
+      --low: #56d364;
+      --done: #8b949e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  p.subtitle { color: var(--text-dim); margin: 0 0 20px; font-size: 0.9rem; }
+  .board {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    overflow-x: auto;
+    position: relative;
+  }
+  #connectors {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 5;
+  }
+  #connectors .dep-line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-dasharray: 5 4;
+  }
+  #connectors .dep-dot {
+    fill: var(--accent);
+  }
+  #connectors .dep-label {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    fill: var(--accent);
+  }
+  #connectors .dep-label-bg {
+    fill: var(--bg);
+  }
+  .card.dep-highlight {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .column {
+    background: var(--col-bg);
+    border-radius: 10px;
+    padding: 12px;
+    width: 300px;
+    flex-shrink: 0;
+    min-height: 200px;
+  }
+  .column h2 {
+    font-size: 0.95rem;
+    margin: 4px 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .count {
+    background: var(--border);
+    color: var(--text-dim);
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    cursor: grab;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: 0.4; }
+  .card-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  .card-desc {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin: 0 0 8px;
+    line-height: 1.4;
+  }
+  .card-desc code {
+    background: var(--border);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 0.75rem;
+  }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 2px 7px;
+    border-radius: 10px;
+    color: #fff;
+  }
+  .tag.high { background: var(--high); }
+  .tag.med { background: var(--med); }
+  .tag.low { background: var(--low); }
+  .tag.done { background: var(--done); }
+  .column.dragover { outline: 2px dashed var(--accent); outline-offset: -4px; }
+</style>
+</head>
+<body>
+
+<h1>RAG PM Chatbot — Project Board</h1>
+<p class="subtitle">Tasks to finish the RAG chatbot project. Drag cards between columns (state resets on reload — this is a static planning file, not synced to git).</p>
+
+<div class="board" id="board">
+
+  <svg id="connectors"></svg>
+
+  <div class="column" data-col="todo">
+    <h2>To Do <span class="count"></span></h2>
+
+    <div class="card" draggable="true" id="card-populate-content">
+      <p class="card-title">Populate real course content</p>
+      <p class="card-desc">Add actual PDFs to <code>data/raw/pdf/</code>, cheat sheets to <code>data/raw/markdown/</code> or <code>data/raw/text/</code>, links in <code>data/urls.txt</code>, and video links in <code>data/youtube_urls.txt</code>. Without real source material the chatbot has nothing to retrieve from.</p>
+      <div class="tags"><span class="tag high">High</span></div>
+    </div>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Fix Pinecone index name mismatch</p>
+      <p class="card-desc">Current <code>PINECONE_INDEX_NAME</code> is <code>medibot</code>, left over from an unrelated medical chatbot project. Confirm the index isn't shared with that project's data, then rename to something PM-specific (e.g. <code>pm-course-kb</code>) and re-ingest.</p>
+      <div class="tags"><span class="tag high">High</span></div>
+    </div>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Run full ingestion end-to-end</p>
+      <p class="card-desc">Once real content is in place, run <code>uv run python -m src.ingest</code> and confirm chunk counts and vector store writes look right for every source type (PDF, markdown, text, web cache, YouTube).</p>
+      <div class="tags"><span class="tag med">Medium</span></div>
+    </div>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Manually QA chatbot answers</p>
+      <p class="card-desc">Launch <code>uv run streamlit run app.py</code> and ask a spread of real PM questions. Check retrieved sources are relevant and the model isn't answering outside the provided context.</p>
+      <div class="tags"><span class="tag med">Medium</span></div>
+    </div>
+
+    <div class="card" draggable="true" id="card-add-videos">
+      <p class="card-title">Add more YouTube videos to knowledge base</p>
+      <p class="card-desc">Append additional public video URLs to <code>data/youtube_urls.txt</code>, then re-run <code>uv run python -m src.ingest</code> so their transcripts get chunked and indexed. Skip anything paywalled or caption-less.</p>
+      <div class="tags"><span class="tag med">Medium</span></div>
+    </div>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Clean up stray venv312/</p>
+      <p class="card-desc"><code>venv312/</code> is a leftover Python 3.12 environment, not the project's <code>.venv</code>, and it isn't gitignored. Either delete it or add it to <code>.gitignore</code> so it can't accidentally get committed.</p>
+      <div class="tags"><span class="tag low">Low</span></div>
+    </div>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Write the README</p>
+      <p class="card-desc"><code>README.md</code> is currently empty. Add a short project description, setup steps (<code>uv sync</code>), and how to run ingestion/chat, so the repo is usable without CLAUDE.md context.</p>
+      <div class="tags"><span class="tag low">Low</span></div>
+    </div>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Verify OCR fallback on scanned PDFs</p>
+      <p class="card-desc">Confirm <code>pytesseract</code>/<code>pdf2image</code> OCR path in <code>pdf_loader.py</code> actually triggers and produces usable text for any scanned-page PDFs added to the knowledge base.</p>
+      <div class="tags"><span class="tag low">Low</span></div>
+    </div>
+
+  </div>
+
+  <div class="column" data-col="progress">
+    <h2>In Progress <span class="count"></span></h2>
+  </div>
+
+  <div class="column" data-col="done">
+    <h2>Done <span class="count"></span></h2>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Initial RAG scaffold</p>
+      <p class="card-desc">Ingestion pipeline, vector store abstraction (Pinecone/Chroma), LCEL chatbot chain, and Streamlit UI committed as the project's initial commit.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true" id="card-yt-loader">
+      <p class="card-title">YouTube transcript ingestion</p>
+      <p class="card-desc"><code>src/loaders/youtube_loader.py</code> wired into <code>src/ingest.py</code> via <code>load_youtube_urls_from_file</code>. Committed as <code>d96c7fb</code>.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Project CLAUDE.md documentation</p>
+      <p class="card-desc">Documented environment setup, architecture, and data layout so Claude Code (and future contributors) have durable context on the codebase.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true" id="card-yt-dep">
+      <p class="card-title">Add youtube-transcript-api dependency</p>
+      <p class="card-desc"><code>youtube_loader.py</code> imported <code>youtube_transcript_api</code> but it was missing from <code>pyproject.toml</code>. Added via <code>uv add youtube-transcript-api</code> (pulls in <code>defusedxml</code>), now locked in <code>uv.lock</code>.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true" id="card-populate-spec">
+      <p class="card-title">Spec: populate real course content</p>
+      <p class="card-desc">Wrote <code>specs/populate-course-content.md</code> — source-type routing table, silent-skip gotchas, ingest steps, and acceptance criteria for getting real PM material into the knowledge base.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  const board = document.getElementById('board');
+  let dragged = null;
+
+  function updateCounts() {
+    document.querySelectorAll('.column').forEach(col => {
+      const n = col.querySelectorAll('.card').length;
+      col.querySelector('.count').textContent = n;
+    });
+  }
+
+  // Dependency edges: "from" must exist before "to" works. Drawn as a
+  // dashed curve hooking out the right edge of one card into the next,
+  // since dependent cards often land in the same column stack.
+  const DEPENDENCIES = [
+    { from: 'card-yt-dep', to: 'card-yt-loader', label: 'enables' },
+    { from: 'card-yt-dep', to: 'card-add-videos', label: 'required by' },
+    { from: 'card-populate-spec', to: 'card-populate-content', label: 'specs' },
+  ];
+
+  const svg = document.getElementById('connectors');
+
+  function drawConnectors() {
+    const boardRect = board.getBoundingClientRect();
+    svg.setAttribute('width', board.scrollWidth);
+    svg.setAttribute('height', board.scrollHeight);
+    svg.innerHTML = '<marker id="dep-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path></marker>';
+
+    DEPENDENCIES.forEach(({ from, to, label }) => {
+      const fromEl = document.getElementById(from);
+      const toEl = document.getElementById(to);
+      if (!fromEl || !toEl) return;
+
+      const f = fromEl.getBoundingClientRect();
+      const t = toEl.getBoundingClientRect();
+
+      const x1 = f.right - boardRect.left + board.scrollLeft;
+      const y1 = f.top - boardRect.top + board.scrollTop + f.height / 2;
+      const x2 = t.left - boardRect.left + board.scrollLeft - 6;
+      const y2 = t.top - boardRect.top + board.scrollTop + t.height / 2;
+
+      const bulge = Math.max(50, Math.abs(x2 - x1) * 0.4);
+      const path = `M ${x1},${y1} C ${x1 + bulge},${y1} ${x2 + bulge},${y2} ${x2},${y2}`;
+
+      const midX = (x1 + x2) / 2 + bulge * 0.5;
+      const midY = (y1 + y2) / 2;
+
+      svg.insertAdjacentHTML('beforeend', `
+        <path class="dep-line" d="${path}" marker-end="url(#dep-arrow)"></path>
+        <circle class="dep-dot" cx="${x1}" cy="${y1}" r="3"></circle>
+        <rect class="dep-label-bg" x="${midX - 28}" y="${midY - 8}" width="56" height="14" rx="4"></rect>
+        <text class="dep-label" x="${midX}" y="${midY + 2}" text-anchor="middle">${label}</text>
+      `);
+    });
+  }
+
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      const id = card.id;
+      DEPENDENCIES.forEach(({ from, to }) => {
+        if (id === from) document.getElementById(to)?.classList.add('dep-highlight');
+        if (id === to) document.getElementById(from)?.classList.add('dep-highlight');
+      });
+    });
+    card.addEventListener('mouseleave', () => {
+      document.querySelectorAll('.dep-highlight').forEach(el => el.classList.remove('dep-highlight'));
+    });
+  });
+
+  board.addEventListener('scroll', drawConnectors);
+  window.addEventListener('resize', drawConnectors);
+
+  board.addEventListener('dragstart', e => {
+    if (!e.target.classList.contains('card')) return;
+    dragged = e.target;
+    e.target.classList.add('dragging');
+  });
+
+  board.addEventListener('dragend', e => {
+    if (!e.target.classList.contains('card')) return;
+    e.target.classList.remove('dragging');
+    updateCounts();
+    drawConnectors();
+  });
+
+  let dragRAF = null;
+  document.querySelectorAll('.column').forEach(col => {
+    col.addEventListener('dragover', e => {
+      e.preventDefault();
+      col.classList.add('dragover');
+      const after = [...col.querySelectorAll('.card:not(.dragging)')].find(card => {
+        const rect = card.getBoundingClientRect();
+        return e.clientY < rect.top + rect.height / 2;
+      });
+      if (after) col.insertBefore(dragged, after);
+      else col.appendChild(dragged);
+      if (!dragRAF) dragRAF = requestAnimationFrame(() => { drawConnectors(); dragRAF = null; });
+    });
+    col.addEventListener('dragleave', () => col.classList.remove('dragover'));
+    col.addEventListener('drop', e => {
+      e.preventDefault();
+      col.classList.remove('dragover');
+    });
+  });
+
+  updateCounts();
+  drawConnectors();
+</script>
+
+</body>
+</html>

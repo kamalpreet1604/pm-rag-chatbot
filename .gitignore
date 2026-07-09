@@ -13,6 +13,9 @@ venv312/
 # Secrets
 .env
 
+# Claude Code local (personal) settings
+.claude/settings.local.json
+
 # Source data and generated vector index (regenerate with `python -m src.ingest`)
 data/raw/
 vectorstore/
