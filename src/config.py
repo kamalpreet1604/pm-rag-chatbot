@@ -13,6 +13,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data", "raw")
 
 PDF_DIR = os.path.join(DATA_DIR, "pdf")
+# Additional folders to scan for PDFs. Kept empty so ingestion only reads the
+# curated data/raw/pdf/ set; add absolute paths here to pull in extra sources.
+EXTRA_PDF_DIRS = []
 MARKDOWN_DIR = os.path.join(DATA_DIR, "markdown")
 TEXT_DIR = os.path.join(DATA_DIR, "text")
 WEB_CACHE_DIR = os.path.join(DATA_DIR, "web_cache")
@@ -22,6 +25,7 @@ CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 150
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+HUGGINGFACEHUB_API_TOKEN = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
 
 VECTORSTORE_BACKEND = os.environ.get("VECTORSTORE_BACKEND", "pinecone")
 

@@ -31,8 +31,16 @@ def _ocr_page(pdf_path, page_number):
 
 
 def load_pdfs():
-    loader = PyPDFDirectoryLoader(config.PDF_DIR)
-    documents = loader.load()
+    all_dirs = [config.PDF_DIR] + getattr(config, "EXTRA_PDF_DIRS", [])
+    documents = []
+
+    for folder in all_dirs:
+        if not os.path.exists(folder):
+            print("[pdf_loader] Skipping missing folder:", folder)
+            continue
+        # silent_errors: skip unreadable/encrypted PDFs instead of aborting the batch
+        loader = PyPDFDirectoryLoader(folder, silent_errors=True)
+        documents.extend(loader.load())
 
     ocr_count = 0
     for doc in documents:
@@ -44,13 +52,18 @@ def load_pdfs():
 
             if pdf_path and os.path.exists(pdf_path):
                 print("[pdf_loader] Page", page_number, "of", pdf_path, "looks scanned -- running OCR...")
-                ocr_text = _ocr_page(pdf_path, page_number)
+                try:
+                    ocr_text = _ocr_page(pdf_path, page_number)
+                except Exception as exc:
+                    # OCR needs pdf2image/pytesseract + poppler; degrade gracefully if unavailable
+                    print("[pdf_loader] OCR unavailable for page", page_number, "->", exc.__class__.__name__)
+                    ocr_text = ""
                 if ocr_text:
                     doc.page_content = ocr_text
                     doc.metadata["ocr_applied"] = True
                     ocr_count += 1
 
-    print("[pdf_loader] Loaded", len(documents), "PDF pages from", config.PDF_DIR, "(", ocr_count, "pages required OCR)")
+    print("[pdf_loader] Loaded", len(documents), "PDF pages from", all_dirs, "(", ocr_count, "pages required OCR)")
     return documents
 
 

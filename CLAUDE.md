@@ -13,7 +13,7 @@ A RAG (Retrieval-Augmented Generation) chatbot over a personal Product Manager c
 - Install deps: `uv sync`
 - Secrets/config live in `.env` (gitignored), loaded via `src/config.py`. Required/relevant vars:
   - `VECTORSTORE_BACKEND` — `pinecone` (default) or `chroma`
-  - `PINECONE_API_KEY`, `PINECONE_INDEX_NAME` (when using Pinecone) — the current `.env` has this set to `medibot`, a leftover name from a different (medical chatbot) project being reused here rather than renamed; if retrieval results look off-topic, check whether this index is actually shared with unrelated project data before assuming a code bug
+  - `PINECONE_API_KEY`, `PINECONE_INDEX_NAME` (when using Pinecone) — `.env` points at the `pm-course` index, a dedicated index built from the cleaned `data/raw/pdf/` set (created 2026-07-09). It replaced the old `medibot` index, a leftover name reused from an unrelated medical-chatbot project that co-mingled off-topic vectors; `medibot` is no longer used by this project
   - `GROQ_API_KEY`, `GROQ_MODEL` (default `llama-3.3-70b-versatile`) — required to run the chatbot. This model has a 128K-token context window and 32K max output on Groq, far more than the retrieval setup needs (`k=4` chunks at `CHUNK_SIZE=1000` chars), so context length isn't a real constraint unless `k`/chunk size grow substantially
 
 ## Common commands
