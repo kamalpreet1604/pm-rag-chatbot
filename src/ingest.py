@@ -2,7 +2,7 @@
 ingest.py
 ----------
 THE main script. Run this whenever you add new PDFs, markdown files,
-text files, or URLs to the knowledge base.
+text files, URLs, or YouTube videos to the knowledge base.
 
 Usage:
     python -m src.ingest
@@ -17,6 +17,7 @@ from src.loaders import (
     load_text_files,
     ingest_urls_from_file,
 )
+from src.loaders.youtube_loader import load_youtube_urls_from_file
 from src.vectorstore import get_vectorstore
 
 
@@ -28,8 +29,9 @@ def load_all_documents():
     pdf_docs = load_pdfs()
     markdown_docs = load_markdown_files()
     text_docs = load_text_files()
+    youtube_docs = load_youtube_urls_from_file()
 
-    all_docs = pdf_docs + markdown_docs + text_docs
+    all_docs = pdf_docs + markdown_docs + text_docs + youtube_docs
     print("=== Step 3: Merged total documents:", len(all_docs), "===")
     return all_docs
 
