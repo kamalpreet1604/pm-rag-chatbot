@@ -1,8 +1,8 @@
-﻿"""
+"""
 vectorstore.py
 ---------------
 Gets your vector store, regardless of backend.
-Defaults to Pinecone (your existing medibot index).
+Defaults to Pinecone (the pm-course index).
 """
 
 from langchain_huggingface import HuggingFaceEmbeddings

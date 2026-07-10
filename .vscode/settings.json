@@ -1,0 +1,8 @@
+{
+  // Always save source files as UTF-8 WITHOUT a byte-order mark (BOM).
+  // A stray BOM at the top of a .py file makes Python raise
+  // "SyntaxError: invalid non-printable character U+FEFF", which bit this
+  // project once. "utf8" (not "utf8bom") guarantees clean saves.
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false
+}

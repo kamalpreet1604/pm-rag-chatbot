@@ -1,0 +1,12 @@
+# Streamlit settings for this project.
+#
+# fileWatcherType = "none":
+#   Disables the dev-mode source watcher. That watcher walks every imported
+#   module (including the huge `transformers` package), which triggers a flood
+#   of harmless "No module named 'torchvision'" tracebacks from transformers'
+#   optional vision models. We only use transformers for TEXT embeddings, so
+#   torchvision is genuinely not needed. Turning the watcher off silences the
+#   noise. Trade-off: the app no longer auto-reruns when you edit a source
+#   file — press "R" in the browser (or restart) to pick up code changes.
+[server]
+fileWatcherType = "none"

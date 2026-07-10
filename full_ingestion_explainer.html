@@ -1,0 +1,535 @@
+<title>Running Full Ingestion End-to-End</title>
+<style>
+  :root {
+    --paper: #f6f3ec;
+    --paper-raised: #fffdf8;
+    --ink: #1c1a15;
+    --ink-soft: #55503f;
+    --line: #ddd6c4;
+    --accent: #b97a1f;
+    --accent-strong: #8f5c14;
+    --accent-tint: #f1e0bf;
+    --code-bg: #efe9d8;
+    --code-border: #d9d0b6;
+    --good: #4c7a4c;
+    --warn: #a5541c;
+    --shadow: 0 1px 2px rgba(28,26,21,0.06), 0 6px 20px -8px rgba(28,26,21,0.12);
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #161511;
+    --paper-raised: #1f1d18;
+    --ink: #ece7d9;
+    --ink-soft: #b0a891;
+    --line: #37342a;
+    --accent: #e3a94d;
+    --accent-strong: #f0bd6e;
+    --accent-tint: #3a2e17;
+    --code-bg: #1c1a15;
+    --code-border: #37342a;
+    --good: #7fb37f;
+    --warn: #e0a06a;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161511;
+      --paper-raised: #1f1d18;
+      --ink: #ece7d9;
+      --ink-soft: #b0a891;
+      --line: #37342a;
+      --accent: #e3a94d;
+      --accent-strong: #f0bd6e;
+      --accent-tint: #3a2e17;
+      --code-bg: #1c1a15;
+      --code-border: #37342a;
+      --good: #7fb37f;
+      --warn: #e0a06a;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 64px 28px 96px;
+  }
+
+  .eyebrow {
+    font-family: ui-monospace, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 1px;
+    background: var(--accent-strong);
+    display: inline-block;
+  }
+
+  h1 {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    font-size: clamp(30px, 4.4vw, 42px);
+    line-height: 1.12;
+    margin: 0 0 14px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  .dek {
+    font-size: 18px;
+    color: var(--ink-soft);
+    max-width: 56ch;
+    margin: 0 0 44px;
+    text-wrap: balance;
+  }
+
+  h2 {
+    font-family: 'Iowan Old Style', Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 56px 0 6px;
+    letter-spacing: -0.005em;
+  }
+
+  .section-note {
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    margin: 0 0 22px;
+    max-width: 62ch;
+  }
+
+  p { max-width: 66ch; }
+  p.tight { margin: 8px 0 0; }
+
+  code, .mono {
+    font-family: ui-monospace, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+    font-size: 0.88em;
+  }
+
+  code {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 4px;
+    padding: 0.1em 0.4em;
+  }
+
+  /* --- what it means banner --- */
+  .whatis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 8px 0 6px;
+  }
+  .whatis-card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--paper-raised);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .whatis-card h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-strong);
+  }
+  .whatis-card p { margin: 0; font-size: 14.5px; color: var(--ink-soft); }
+  @media (max-width: 560px) { .whatis { grid-template-columns: 1fr; } }
+
+  /* --- pipeline diagram --- */
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    align-items: stretch;
+    margin: 8px 0 6px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--paper-raised);
+    box-shadow: var(--shadow);
+  }
+
+  .stage {
+    padding: 18px 14px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-right: 1px solid var(--line);
+  }
+  .stage:last-child { border-right: none; }
+
+  .stage:not(:last-child)::after {
+    content: "→";
+    position: absolute;
+    right: -11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 15px;
+    background: var(--paper-raised);
+    width: 20px;
+    text-align: center;
+    z-index: 2;
+  }
+
+  .stage-label {
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-strong);
+  }
+
+  .stage-name { font-size: 13.5px; font-weight: 600; line-height: 1.3; }
+
+  .stage-file {
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 10.5px;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 640px) {
+    .pipeline { grid-template-columns: 1fr; }
+    .stage { border-right: none; border-bottom: 1px solid var(--line); }
+    .stage:not(:last-child)::after { content: "↓"; right: 50%; top: auto; bottom: -11px; transform: translateX(50%); }
+  }
+
+  /* --- numbered steps --- */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    counter-reset: step;
+    border-top: 1px solid var(--line);
+  }
+
+  .step {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 18px;
+    padding: 26px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .step-num {
+    font-family: 'Iowan Old Style', Georgia, serif;
+    font-size: 22px;
+    color: var(--accent);
+    font-weight: 700;
+    line-height: 1;
+  }
+  .step-num::before { content: counter(step); }
+
+  .step-title { font-weight: 700; font-size: 16.5px; margin: 0 0 4px; }
+  .step-body { max-width: 62ch; }
+
+  .file-tag {
+    display: inline-block;
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 11.5px;
+    color: var(--accent-strong);
+    background: var(--accent-tint);
+    border-radius: 4px;
+    padding: 2px 7px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 12px 0 0;
+    font-family: ui-monospace, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .cmt { color: var(--ink-soft); }
+  .kw { color: var(--accent-strong); }
+  .ok { color: var(--good); }
+
+  /* --- callout --- */
+  .callout {
+    margin: 40px 0;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--paper-raised);
+    border-radius: 0 8px 8px 0;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .callout.warn { border-left-color: var(--warn); }
+
+  .callout-title {
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent-strong);
+    margin-bottom: 8px;
+  }
+  .callout.warn .callout-title { color: var(--warn); }
+
+  .callout ul { margin: 0; padding-left: 18px; }
+  .callout li { margin: 6px 0; font-size: 14.5px; }
+  .callout li::marker { color: var(--accent); }
+
+  /* --- when-to checklist --- */
+  .when {
+    list-style: none;
+    padding: 0;
+    margin: 6px 0 0;
+    border-top: 1px solid var(--line);
+  }
+  .when li {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 15px;
+    max-width: none;
+  }
+  .when .mark { font-weight: 700; color: var(--good); font-family: ui-monospace, monospace; }
+  .when .mark.no { color: var(--warn); }
+
+  /* --- commands --- */
+  .cmd-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+    font-size: 14px;
+    overflow-x: auto;
+    display: block;
+  }
+  .cmd-table tbody { display: table; width: 100%; }
+
+  .cmd-table td {
+    padding: 12px 12px;
+    border-top: 1px solid var(--line);
+    vertical-align: top;
+  }
+  .cmd-table tr:first-child td { border-top: none; }
+
+  .cmd-table td:first-child {
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 12.5px;
+    color: var(--accent-strong);
+    white-space: nowrap;
+    width: 1%;
+    padding-right: 20px;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  }
+</style>
+
+<div class="page">
+
+  <div class="eyebrow">RAGUdemy · in progress · run full ingestion end-to-end</div>
+  <h1>Running the full ingestion pipeline — and knowing it actually worked</h1>
+  <p class="dek">Ingestion is the batch job that turns your raw files into searchable vectors. This is how to run it over everything at once, and how to read the output to confirm it did what you think.</p>
+
+  <h2>First: what "ingestion" even is</h2>
+  <p class="section-note">Two separate programs live in this repo. It helps to keep them straight.</p>
+
+  <div class="whatis">
+    <div class="whatis-card">
+      <h3>Ingest (build time)</h3>
+      <p>A one-shot batch script. Reads your source files, cuts them into chunks, turns each chunk into a vector, and writes them to the vector store. You run it by hand, occasionally.</p>
+    </div>
+    <div class="whatis-card">
+      <h3>Chatbot (query time)</h3>
+      <p>The Streamlit app. Never touches your raw files — it only searches the vectors ingestion already wrote. If a fact isn't ingested, the bot can't answer from it.</p>
+    </div>
+  </div>
+
+  <p style="margin-top:22px">"Run full ingestion end-to-end" means: execute that build-time script over <em>all</em> source types in one pass — PDFs, markdown, plain text, cached web articles, and YouTube transcripts — rather than debugging one loader at a time. It's the last check before the knowledge base is considered real.</p>
+
+  <h2>The pipeline, end to end</h2>
+  <p class="section-note">Everything below happens inside a single command: <code>uv run python -m src.ingest</code>. The <code>run()</code> function in <code>src/ingest.py</code> orchestrates it.</p>
+
+  <div class="pipeline">
+    <div class="stage">
+      <span class="stage-label">Step 1</span>
+      <span class="stage-name">URLs → markdown cache</span>
+      <span class="stage-file">web_loader.py</span>
+    </div>
+    <div class="stage">
+      <span class="stage-label">Step 2</span>
+      <span class="stage-name">Load every source type</span>
+      <span class="stage-file">loaders/*.py</span>
+    </div>
+    <div class="stage">
+      <span class="stage-label">Step 3a</span>
+      <span class="stage-name">Split into chunks</span>
+      <span class="stage-file">RecursiveCharacterTextSplitter</span>
+    </div>
+    <div class="stage">
+      <span class="stage-label">Step 3b</span>
+      <span class="stage-name">Embed + store</span>
+      <span class="stage-file">vectorstore.py</span>
+    </div>
+  </div>
+
+  <h2>Walking through a full run</h2>
+  <p class="section-note">Each step with the real code from <code>src/ingest.py</code> and what to look for in the printed output.</p>
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">Make sure real content is actually in place</p>
+        <p class="step-body tight">This is the "once real content is in place" precondition on the card. Ingestion can only index files that exist. Before running, confirm each source folder has what you expect — empty folders silently contribute zero documents.</p>
+        <pre><span class="cmt"># the folders ingestion reads (from src/config.py)</span>
+data/raw/pdf/        <span class="cmt"># PDFs (OCR fallback for scanned pages)</span>
+data/raw/markdown/   <span class="cmt"># hand-written .md notes</span>
+data/raw/text/       <span class="cmt"># plain .txt</span>
+data/raw/web_cache/  <span class="cmt"># auto-filled from data/urls.txt in step 1</span>
+data/urls.txt        <span class="cmt"># article URLs to fetch</span>
+data/youtube_urls.txt <span class="cmt"># video URLs to transcribe</span></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">Run the one command</p>
+        <p class="step-body tight">From the project root. <code>uv run</code> uses the project's <code>.venv</code> (Python 3.14) so you don't have to activate anything. The <code>-m</code> flag runs it as a module so the <code>src</code> package imports resolve.</p>
+        <pre><span class="kw">uv run</span> python -m src.ingest</pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">Step 1 fires: URLs become cached markdown<span class="file-tag">web_loader.py</span></p>
+        <p class="step-body tight"><code>ingest_urls_from_file()</code> reads <code>data/urls.txt</code>, fetches each page, strips nav/ads/boilerplate with <code>trafilatura</code>, and writes clean markdown into <code>data/raw/web_cache/</code>. That's why web articles get loaded in step 2 alongside your hand-written markdown — by then they're just files on disk.</p>
+        <pre><span class="ok">=== Step 1: Converting URLs to markdown ===</span></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">Step 2 fires: every loader runs and tags its docs</p>
+        <p class="step-body tight">Each loader returns LangChain <code>Document</code>s carrying a <code>source_type</code> tag (<code>pdf</code>, <code>markdown</code>, <code>text</code>, <code>youtube</code>). They're concatenated into one list. The merged count is your first real signal — if it's suspiciously low, a folder was empty or a loader failed.</p>
+        <pre>all_docs = pdf_docs + markdown_docs + text_docs + youtube_docs
+<span class="ok">=== Step 3: Merged total documents: 214 ===</span></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">Step 3a: documents are split into chunks</p>
+        <p class="step-body tight"><code>RecursiveCharacterTextSplitter</code> cuts each document into ~1000-character pieces (<code>CHUNK_SIZE</code>) with 150 chars of overlap (<code>CHUNK_OVERLAP</code>) so a sentence spanning a boundary isn't lost. Chunk count is always ≥ document count — a long PDF becomes many chunks. This is the number the card asks you to "confirm."</p>
+        <pre><span class="ok">[ingest] Split 214 documents into 1,883 chunks</span></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num"></div>
+      <div>
+        <p class="step-title">Step 3b: chunks are embedded and written to the vector store<span class="file-tag">vectorstore.py</span></p>
+        <p class="step-body tight">Each chunk is turned into a 384-dim vector by <code>all-MiniLM-L6-v2</code>, then written to whichever backend <code>VECTORSTORE_BACKEND</code> names — Pinecone's <code>pm-course</code> index by default, or a local Chroma store. This final line is your "vector store writes look right" confirmation.</p>
+        <pre>vs = get_vectorstore()
+vs.add_documents(chunks)
+<span class="ok">[ingest] Stored 1,883 chunks in pinecone vector store</span>
+<span class="ok">[SUCCESS] Ingestion complete.</span></pre>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>Confirming it "looks right" — per source type</h2>
+  <p class="section-note">The card asks you to confirm counts for every source type. The default output only prints <em>totals</em>, so here's how to actually verify each one carried through.</p>
+
+  <div class="callout">
+    <div class="callout-title">Cross-check each loader in isolation</div>
+    <ul>
+      <li>Run each loader standalone — every one has a <code>__main__</code> block that prints what it loaded: <code>uv run python -m src.loaders.pdf_loader</code>, then <code>markdown_loader</code>, <code>text_loader</code>, <code>youtube_loader</code>. If PDF prints 40 docs and text prints 0, you know text is empty <em>before</em> a full rebuild.</li>
+      <li>Watch the merged total in step 2. Add up the standalone counts — they should equal the merged number.</li>
+      <li>Query the store after: launch <code>uv run streamlit run app.py</code> and ask a question you know is answered by a PDF, then one answered by a YouTube video. The bot returns source chunks, so you can see each <code>source_type</code> come back.</li>
+    </ul>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-title">The one gotcha that will bite you</div>
+    <ul>
+      <li><strong>Ingestion appends — it does not replace.</strong> <code>store_chunks()</code> calls <code>vs.add_documents(chunks)</code> with no delete first. Run it twice and you get <em>two copies</em> of every chunk in the index. Counts will look "wrong" (doubled) and retrieval quality drops from duplicate hits.</li>
+      <li><strong>So a true "end-to-end rebuild" means clearing first.</strong> For Chroma, delete <code>vectorstore/chroma_db/</code>. For Pinecone, delete the vectors in the <code>pm-course</code> index (or recreate it) before re-ingesting. Then the printed chunk count should match the index's vector count.</li>
+      <li><strong>Verify the final count matches.</strong> After a clean run, the Pinecone dashboard (or Chroma's <code>collection.count()</code>) should equal the "Stored N chunks" line. If they differ, something was written twice or a write failed.</li>
+    </ul>
+  </div>
+
+  <h2>When to run it</h2>
+  <p class="section-note">Ingestion is not something you run on every code change — only when the <em>content</em> or the <em>indexing recipe</em> changes.</p>
+
+  <ul class="when">
+    <li><span class="mark">✓</span><span>You added, removed, or edited files in any <code>data/raw/*</code> folder.</span></li>
+    <li><span class="mark">✓</span><span>You added URLs to <code>data/urls.txt</code> or videos to <code>data/youtube_urls.txt</code>.</span></li>
+    <li><span class="mark">✓</span><span>You changed <code>CHUNK_SIZE</code>, <code>CHUNK_OVERLAP</code>, or the embedding model — the vectors must be rebuilt to match.</span></li>
+    <li><span class="mark">✓</span><span>You switched <code>VECTORSTORE_BACKEND</code> or pointed at a fresh/empty index.</span></li>
+    <li><span class="mark no">✕</span><span>You only edited <code>chatbot.py</code>, <code>app.py</code>, or the prompt — that's query-time code, no re-ingest needed.</span></li>
+    <li><span class="mark no">✕</span><span>You're just restarting the chat UI. The vectors persist; ingestion already did its job.</span></li>
+  </ul>
+
+  <h2>Commands you'll actually use</h2>
+  <table class="cmd-table">
+    <tbody>
+      <tr>
+        <td>uv run python -m src.ingest</td>
+        <td>The full end-to-end run — all source types, chunk, embed, store, in one pass.</td>
+      </tr>
+      <tr>
+        <td>uv run python -m src.loaders.pdf_loader</td>
+        <td>Run one loader standalone to see its document count before a full rebuild. Swap in any loader name.</td>
+      </tr>
+      <tr>
+        <td>uv run streamlit run app.py</td>
+        <td>Launch the chat UI to query what you just indexed and eyeball the returned source chunks.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <footer>src/ingest.py · src/config.py · src/vectorstore.py · src/loaders/*.py</footer>
+
+</div>

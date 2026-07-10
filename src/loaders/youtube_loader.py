@@ -42,8 +42,13 @@ def load_youtube_urls_from_file(filepath="data/youtube_urls.txt"):
         print("[youtube_loader] No file found at", filepath)
         return []
 
-    with open(filepath, "r", encoding="utf-8") as f:
-        urls = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+    # utf-8-sig strips a leading byte-order-mark so it can't corrupt the first URL.
+    with open(filepath, "r", encoding="utf-8-sig") as f:
+        urls = [
+            line.strip().lstrip("﻿")
+            for line in f
+            if line.strip() and not line.lstrip("﻿").startswith("#")
+        ]
 
     docs = []
     for url in urls:

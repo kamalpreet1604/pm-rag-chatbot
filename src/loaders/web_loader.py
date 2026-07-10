@@ -1,4 +1,4 @@
-﻿"""
+"""
 web_loader.py
 --------------
 Fetches web pages / blog posts / docs pages from data/urls.txt,
@@ -71,8 +71,15 @@ def ingest_urls_from_file(urls_file: str = None):
         print(f"[web_loader] No urls file found at {urls_file} -- skipping URL ingestion.")
         return []
 
-    with open(urls_file, "r", encoding="utf-8") as f:
-        urls = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+    # utf-8-sig + ﻿ strip so a byte-order-mark saved into the file doesn't
+    # become part of the first URL (which then fails to download and crashes the
+    # error print on a cp1252 Windows console).
+    with open(urls_file, "r", encoding="utf-8-sig") as f:
+        urls = [
+            line.strip().lstrip("﻿")
+            for line in f
+            if line.strip() and not line.lstrip("﻿").startswith("#")
+        ]
 
     saved_paths = []
     for url in urls:

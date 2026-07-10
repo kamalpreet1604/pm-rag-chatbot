@@ -1,4 +1,4 @@
-﻿"""
+"""
 ingest.py
 ----------
 THE main script. Run this whenever you add new PDFs, markdown files,

@@ -15,6 +15,9 @@ venv312/
 
 # Claude Code local (personal) settings
 .claude/settings.local.json
+# Skill symlinks auto-generated into the workspace (point into .venv)
+.claude/skills/
+.agents/
 
 # Source data and generated vector index (regenerate with `python -m src.ingest`)
 data/raw/
