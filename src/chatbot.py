@@ -54,7 +54,7 @@ def format_docs(docs):
 
 @st.cache_resource
 def get_chain():
-    retriever = get_vectorstore_cached().as_retriever(search_kwargs={"k": 4})
+    retriever = get_vectorstore_cached().as_retriever(search_kwargs={"k": 8})
     prompt = set_custom_prompt()
     llm = load_llm()
 
