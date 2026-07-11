@@ -10,6 +10,10 @@ wheels/
 .venv
 venv312/
 
+# Local Python pin (3.14) — kept out of the repo so Streamlit Cloud, which has
+# no 3.14 yet, can build on 3.13 (see requires-python in pyproject.toml).
+.python-version
+
 # Secrets
 .env
 .streamlit/secrets.toml
