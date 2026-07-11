@@ -12,6 +12,7 @@ venv312/
 
 # Secrets
 .env
+.streamlit/secrets.toml
 
 # Claude Code local (personal) settings
 .claude/settings.local.json

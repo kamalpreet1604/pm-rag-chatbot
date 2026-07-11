@@ -1,0 +1,16 @@
+# Runtime dependencies for the DEPLOYED Streamlit app (app.py) only.
+#
+# Local development uses uv + pyproject.toml/uv.lock, which include the heavier
+# ingestion/OCR stack (unstructured, pytesseract, pdf2image, pymupdf, trafilatura,
+# youtube-transcript-api, ...). None of that runs in the deployed app — it only
+# QUERIES the already-populated Pinecone index — so this file stays lean to keep
+# the Streamlit Community Cloud build fast and within resource limits.
+#
+# Streamlit Community Cloud installs from this file automatically.
+
+streamlit>=1.51.0
+python-dotenv>=1.2.2
+langchain-huggingface>=1.2.2
+langchain-pinecone>=0.2.13
+langchain-groq>=1.1.3
+sentence-transformers>=5.5.1
