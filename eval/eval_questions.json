@@ -1,0 +1,46 @@
+{
+  "description": "Retrieval eval set. Each item is a question plus substrings that SHOULD appear in the `source` metadata of at least one retrieved chunk. Matching is case-insensitive substring; list a few acceptable sources per question since more than one file can legitimately cover a topic. Edit freely — add questions as the knowledge base grows.",
+  "k": 8,
+  "questions": [
+    {
+      "question": "What is the difference between a product manager and a product owner?",
+      "expect_any": ["product_manager_vs_product_owner", "Product vs Project management", "product_manager_types"]
+    },
+    {
+      "question": "What is a minimum viable product and why does it matter?",
+      "expect_any": ["What is an MVP", "dropbox_minimal_viable_product", "product_discovery_and_research"]
+    },
+    {
+      "question": "How should a product manager prioritize features?",
+      "expect_any": ["Prioritization", "prioritization_frameworks"]
+    },
+    {
+      "question": "What is the AARRR pirate metrics framework?",
+      "expect_any": ["AARRR", "startup_metrics_for_pirates", "metrics_and_analytics", "Real life examples of metrics"]
+    },
+    {
+      "question": "What is the HEART framework for measuring user experience?",
+      "expect_any": ["HeartFramework", "heart-framework", "heart_framework", "metrics_and_analytics"]
+    },
+    {
+      "question": "What is the difference between Scrum and Kanban?",
+      "expect_any": ["Kanban", "scrum", "agile_and_delivery"]
+    },
+    {
+      "question": "How do I write a good user story with acceptance criteria?",
+      "expect_any": ["epics_stories_themes", "epics-stories-themes", "agile_and_delivery", "user_story"]
+    },
+    {
+      "question": "What is jobs to be done and how does it help product discovery?",
+      "expect_any": ["product_discovery_and_research", "user_needs", "customer_development"]
+    },
+    {
+      "question": "How do I run effective customer interviews?",
+      "expect_any": ["customer_interviews", "product_discovery_and_research", "customer_development"]
+    },
+    {
+      "question": "What are the different types of product manager roles?",
+      "expect_any": ["product_manager_types", "introverted_product_manager"]
+    }
+  ]
+}
