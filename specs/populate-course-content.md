@@ -1,6 +1,12 @@
 # Spec: Populate real course content
 
-**Status:** To Do &nbsp;·&nbsp; **Priority:** High &nbsp;·&nbsp; **Owner:** Kamalpreet
+**Status:** ✅ Done (2026-07-11) &nbsp;·&nbsp; **Priority:** High &nbsp;·&nbsp; **Owner:** Kamalpreet
+
+> **Completed.** Real PM course material is ingested and the chatbot answers from it.
+> Live state (2026-07-11): `pm-course` Pinecone index holds a clean **2269** vectors
+> (970 docs → 2269 chunks) across PDF (891 pages, 76 OCR'd), web cache (75), and YouTube (3).
+> All acceptance criteria below verified — see the checked boxes. Retained as a record of the
+> source-routing rules and gotchas, not as open work.
 
 ## Problem
 
@@ -57,25 +63,26 @@ Notes:
 
 ## Acceptance criteria
 
-- [ ] At least one real file is present and loading in **each** source type the course actually has
+- [x] At least one real file is present and loading in **each** source type the course actually has
       (don't fabricate types you don't need — but PDFs and at least one of markdown/text should be covered).
-- [ ] `uv run python -m src.ingest` completes with `[SUCCESS] Ingestion complete.` and a non-zero
-      stored-chunk count.
-- [ ] No loader silently reports `Loaded 0 ...` for a folder you deliberately populated.
-- [ ] In the Streamlit app, three representative PM questions return answers that are clearly drawn
+      *PDF, markdown, web, and YouTube all load; `text` intentionally empty.*
+- [x] `uv run python -m src.ingest` completes with `[SUCCESS] Ingestion complete.` and a non-zero
+      stored-chunk count. *2269 chunks stored, clean.*
+- [x] No loader silently reports `Loaded 0 ...` for a folder you deliberately populated.
+- [x] In the Streamlit app, three representative PM questions return answers that are clearly drawn
       from the ingested material, with the source chunks shown alongside coming from the expected files.
-- [ ] The chatbot declines / says it doesn't know when asked something outside the course material
-      (confirms it's answering from context, not general knowledge).
+      *Verified 2026-07-11 via `src.chatbot.get_answer` — PM vs PO, MVP, prioritization, AARRR all grounded at k=8.*
+- [x] The chatbot declines / says it doesn't know when asked something outside the course material
+      (confirms it's answering from context, not general knowledge). *Out-of-domain question correctly declined.*
 
 ## Dependencies & risks
 
 - **Blocks:** *Run full ingestion end-to-end* and *Manually QA chatbot answers* — both are meaningless
   until real content exists.
-- **Related open task:** *Fix Pinecone index name mismatch* — `PINECONE_INDEX_NAME` currently
-  defaults to `medibot` (see [`src/config.py`](../src/config.py) line 29). Decide whether to ingest
-  into a fresh PM-specific index **before** loading content, to avoid mixing this data with the
-  unrelated medical project or having to re-ingest later. If iterating locally, setting
-  `VECTORSTORE_BACKEND=chroma` avoids touching Pinecone at all.
+- **~~Related open task:~~ RESOLVED:** *Fix Pinecone index name mismatch* — done. `PINECONE_INDEX_NAME`
+  now defaults to the dedicated `pm-course` index (no longer the leftover `medibot`), and content was
+  ingested into it fresh, so there's no co-mingling with the unrelated medical project. If iterating
+  locally, setting `VECTORSTORE_BACKEND=chroma` still avoids touching Pinecone at all.
 - **Risk — silent skips:** wrong extension or wrong folder = file ignored with no error. Always
   verify the loader counts after ingest rather than assuming a file was picked up.
 - **Risk — no captions:** a YouTube video without a public transcript is skipped with a printed
