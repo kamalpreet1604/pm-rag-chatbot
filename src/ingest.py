@@ -5,8 +5,15 @@ THE main script. Run this whenever you add new PDFs, markdown files,
 text files, URLs, or YouTube videos to the knowledge base.
 
 Usage:
-    python -m src.ingest
+    python -m src.ingest            # add current sources to the store (APPENDS)
+    python -m src.ingest --reset    # clear the store first, then rebuild (REPLACES)
+
+Use --reset whenever you re-ingest existing content (e.g. after adding a source),
+so you get one clean copy instead of stacking duplicates.
 """
+
+import argparse
+import time
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -18,7 +25,7 @@ from src.loaders import (
     ingest_urls_from_file,
 )
 from src.loaders.youtube_loader import load_youtube_urls_from_file
-from src.vectorstore import get_vectorstore
+from src.vectorstore import get_vectorstore, clear_vectorstore, count_vectors
 
 
 def load_all_documents():
@@ -57,15 +64,46 @@ def store_chunks(chunks):
     print("[ingest] Stored", len(chunks), "chunks in", config.VECTORSTORE_BACKEND, "vector store")
 
 
-def run():
+def verify_count(expected):
+    """After a --reset rebuild, confirm the store's count matches what we stored."""
+    final = None
+    for _ in range(10):
+        final = count_vectors()
+        if final is not None and final >= expected * 0.98:
+            break
+        time.sleep(3)
+    print(f"[ingest] Store now reports {final} vectors (stored {expected} this run).")
+    if final is None:
+        print("[ingest] (could not read store count to verify)")
+    elif abs(final - expected) > max(5, expected * 0.02):
+        print("[ingest] WARNING: count differs from stored -- possible leftovers or a failed write.")
+    else:
+        print("[ingest] OK: store holds one clean copy.")
+
+
+def run(reset=False):
+    if reset:
+        print("=== Reset: clearing the vector store before rebuild ===")
+        clear_vectorstore()
+
     documents = load_all_documents()
     if not documents:
         print("No documents found in any source folder. Add files and re-run.")
         return
     chunks = chunk_documents(documents)
     store_chunks(chunks)
+
+    if reset:
+        verify_count(len(chunks))
     print("[SUCCESS] Ingestion complete.")
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser(description="(Re)build the knowledge base vector store.")
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Clear the vector store first so this rebuild REPLACES instead of appends.",
+    )
+    args = parser.parse_args()
+    run(reset=args.reset)
