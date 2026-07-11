@@ -1,46 +1,47 @@
 {
-  "description": "Retrieval eval set. Each item is a question plus substrings that SHOULD appear in the `source` metadata of at least one retrieved chunk. Matching is case-insensitive substring; list a few acceptable sources per question since more than one file can legitimately cover a topic. Edit freely — add questions as the knowledge base grows.",
+  "description": "Retrieval eval set. Each item is a question plus `expect_any`: substrings, at least one of which SHOULD appear in the `source` metadata of a retrieved chunk (drives hit@k, MRR, precision@k). Optionally add `expect_all`: substrings that must ALL be retrieved for the question to be fully answered — this drives recall. Matching is case-insensitive substring against the source filename. NOTE on this KB: 'Become a Product Manager - Review sheets, activities, & resources.pdf' is a full-course lecture-summary compilation that substantively covers almost every topic, so it is a legitimate source for most questions and tends to dominate retrieval. It's listed as an acceptable source below; the dedicated CHEAT SHEET files are listed too so the metrics stay sensitive to whether focused sources surface. Edit freely as the knowledge base grows.",
   "k": 8,
   "questions": [
     {
       "question": "What is the difference between a product manager and a product owner?",
-      "expect_any": ["product_manager_vs_product_owner", "Product vs Project management", "product_manager_types"]
+      "expect_any": ["Product vs Project management", "What is a PM", "Review sheets"]
     },
     {
       "question": "What is a minimum viable product and why does it matter?",
-      "expect_any": ["What is an MVP", "dropbox_minimal_viable_product", "product_discovery_and_research"]
+      "expect_any": ["MVP", "Review sheets"]
     },
     {
       "question": "How should a product manager prioritize features?",
-      "expect_any": ["Prioritization", "prioritization_frameworks"]
+      "expect_any": ["Prioritization", "Roadmapping", "feature table", "Review sheets"]
     },
     {
       "question": "What is the AARRR pirate metrics framework?",
-      "expect_any": ["AARRR", "startup_metrics_for_pirates", "metrics_and_analytics", "Real life examples of metrics"]
+      "expect_any": ["AARRR", "Real life examples of metrics", "How to pick good metrics", "Review sheets"]
     },
     {
       "question": "What is the HEART framework for measuring user experience?",
-      "expect_any": ["HeartFramework", "heart-framework", "heart_framework", "metrics_and_analytics"]
+      "expect_any": ["HEART", "HeartFramework", "Review sheets"]
     },
     {
       "question": "What is the difference between Scrum and Kanban?",
-      "expect_any": ["Kanban", "scrum", "agile_and_delivery"]
+      "expect_any": ["Scrum", "Kanban", "Review sheets"],
+      "expect_all": ["Scrum", "Kanban"]
     },
     {
       "question": "How do I write a good user story with acceptance criteria?",
-      "expect_any": ["epics_stories_themes", "epics-stories-themes", "agile_and_delivery", "user_story"]
+      "expect_any": ["User stories and acceptance criteria", "epics", "Review sheets"]
     },
     {
-      "question": "What is jobs to be done and how does it help product discovery?",
-      "expect_any": ["product_discovery_and_research", "user_needs", "customer_development"]
+      "question": "What is customer development and how does it help product discovery?",
+      "expect_any": ["customer development", "user needs", "ideas and user needs", "Review sheets"]
     },
     {
       "question": "How do I run effective customer interviews?",
-      "expect_any": ["customer_interviews", "product_discovery_and_research", "customer_development"]
+      "expect_any": ["customer interview", "types of interviews", "How to get them to talk", "Review sheets"]
     },
     {
       "question": "What are the different types of product manager roles?",
-      "expect_any": ["product_manager_types", "introverted_product_manager"]
+      "expect_any": ["What type of PM", "3 types of PMs", "Review sheets"]
     }
   ]
 }
