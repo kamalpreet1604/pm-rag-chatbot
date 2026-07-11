@@ -162,52 +162,16 @@
   <div class="column" data-col="todo">
     <h2>To Do <span class="count"></span></h2>
 
-    <div class="card" draggable="true" id="card-populate-content">
-      <p class="card-title">Populate real course content</p>
-      <p class="card-desc">Add actual PDFs to <code>data/raw/pdf/</code>, cheat sheets to <code>data/raw/markdown/</code> or <code>data/raw/text/</code>, links in <code>data/urls.txt</code>, and video links in <code>data/youtube_urls.txt</code>. Without real source material the chatbot has nothing to retrieve from.</p>
-      <div class="tags"><span class="tag high">High</span></div>
-    </div>
-
     <div class="card" draggable="true">
-      <p class="card-title">Fix Pinecone index name mismatch</p>
-      <p class="card-desc">Current <code>PINECONE_INDEX_NAME</code> is <code>medibot</code>, left over from an unrelated medical chatbot project. Confirm the index isn't shared with that project's data, then rename to something PM-specific (e.g. <code>pm-course-kb</code>) and re-ingest.</p>
-      <div class="tags"><span class="tag high">High</span></div>
-    </div>
-
-    <div class="card" draggable="true">
-      <p class="card-title">Run full ingestion end-to-end</p>
-      <p class="card-desc">Once real content is in place, run <code>uv run python -m src.ingest</code> and confirm chunk counts and vector store writes look right for every source type (PDF, markdown, text, web cache, YouTube).</p>
-      <div class="tags"><span class="tag med">Medium</span></div>
-    </div>
-
-    <div class="card" draggable="true">
-      <p class="card-title">Manually QA chatbot answers</p>
-      <p class="card-desc">Launch <code>uv run streamlit run app.py</code> and ask a spread of real PM questions. Check retrieved sources are relevant and the model isn't answering outside the provided context.</p>
-      <div class="tags"><span class="tag med">Medium</span></div>
+      <p class="card-title">Add remaining markdown/text notes</p>
+      <p class="card-desc"><code>data/raw/markdown/</code> has only 1 file and <code>data/raw/text/</code> is empty. PDFs (116) and web/YouTube sources are well covered; if you have cheat sheets or hand-typed notes, drop them in for completeness — not required by the spec, which only asks for PDFs + at least one of markdown/text.</p>
+      <div class="tags"><span class="tag low">Low</span></div>
     </div>
 
     <div class="card" draggable="true" id="card-add-videos">
       <p class="card-title">Add more YouTube videos to knowledge base</p>
       <p class="card-desc">Append additional public video URLs to <code>data/youtube_urls.txt</code>, then re-run <code>uv run python -m src.ingest</code> so their transcripts get chunked and indexed. Skip anything paywalled or caption-less.</p>
       <div class="tags"><span class="tag med">Medium</span></div>
-    </div>
-
-    <div class="card" draggable="true">
-      <p class="card-title">Clean up stray venv312/</p>
-      <p class="card-desc"><code>venv312/</code> is a leftover Python 3.12 environment, not the project's <code>.venv</code>, and it isn't gitignored. Either delete it or add it to <code>.gitignore</code> so it can't accidentally get committed.</p>
-      <div class="tags"><span class="tag low">Low</span></div>
-    </div>
-
-    <div class="card" draggable="true">
-      <p class="card-title">Write the README</p>
-      <p class="card-desc"><code>README.md</code> is currently empty. Add a short project description, setup steps (<code>uv sync</code>), and how to run ingestion/chat, so the repo is usable without CLAUDE.md context.</p>
-      <div class="tags"><span class="tag low">Low</span></div>
-    </div>
-
-    <div class="card" draggable="true">
-      <p class="card-title">Verify OCR fallback on scanned PDFs</p>
-      <p class="card-desc">Confirm <code>pytesseract</code>/<code>pdf2image</code> OCR path in <code>pdf_loader.py</code> actually triggers and produces usable text for any scanned-page PDFs added to the knowledge base.</p>
-      <div class="tags"><span class="tag low">Low</span></div>
     </div>
 
   </div>
@@ -249,6 +213,54 @@
       <div class="tags"><span class="tag done">Done</span></div>
     </div>
 
+    <div class="card" draggable="true" id="card-fix-pinecone">
+      <p class="card-title">Rename Pinecone index off medibot</p>
+      <p class="card-desc"><code>PINECONE_INDEX_NAME</code> default and <code>.env</code> both point at a dedicated <code>pm-course</code> index now, not the leftover medical-chatbot <code>medibot</code> index.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true" id="card-populate-content">
+      <p class="card-title">Populate real course content</p>
+      <p class="card-desc">116 PDFs in <code>data/raw/pdf/</code>, 75 cached web articles, 86 clean URLs in <code>data/urls.txt</code>, 3 YouTube videos in <code>data/youtube_urls.txt</code>.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true" id="card-run-ingestion">
+      <p class="card-title">Run full ingestion end-to-end</p>
+      <p class="card-desc">Confirmed live: <code>pm-course</code> Pinecone index holds 2268 vectors. Ingestion hardened with OCR caching and BOM-safe reads; retrieval bumped to k=8.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true" id="card-qa-chatbot">
+      <p class="card-title">QA chatbot answers</p>
+      <p class="card-desc">Smoke-checked 4 PM questions (PM vs PO, MVP, prioritization, AARRR) — all grounded in on-topic sources at k=8. Out-of-domain question correctly declined instead of answering from general knowledge. Satisfies the last acceptance criterion in <code>specs/populate-course-content.md</code>.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true" id="card-reset-flag">
+      <p class="card-title">Add <code>ingest --reset</code> for clean rebuilds</p>
+      <p class="card-desc"><code>clear_vectorstore()</code> deletes all vectors and waits until Pinecone reports zero before rebuilding, so re-ingests REPLACE instead of append (the old duplicate-vectors gotcha). <code>--reset</code> flag + post-run <code>count_vectors()</code> check. Verified: rebuilt to a clean 2269. Committed <code>169de89</code>.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Verify OCR fallback on scanned PDFs</p>
+      <p class="card-desc">Confirmed via the reset ingest run: <code>pdf_loader.py</code> reported <code>76 OCR pages; 125 from cache</code>, so the <code>pytesseract</code>/<code>pdf2image</code> path triggers and its results cache correctly.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Write the README</p>
+      <p class="card-desc"><code>README.md</code> now covers overview, setup (<code>uv sync</code>), ingest/<code>--reset</code> usage, data layout, and architecture. Committed <code>1c5d7c5</code>.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
+    <div class="card" draggable="true">
+      <p class="card-title">Clean up stray venv312/</p>
+      <p class="card-desc">Deleted the leftover Python 3.12 environment. It was already gitignored, so nothing to commit — the working tree is clean of it now.</p>
+      <div class="tags"><span class="tag done">Done</span></div>
+    </div>
+
   </div>
 
 </div>
@@ -271,6 +283,9 @@
     { from: 'card-yt-dep', to: 'card-yt-loader', label: 'enables' },
     { from: 'card-yt-dep', to: 'card-add-videos', label: 'required by' },
     { from: 'card-populate-spec', to: 'card-populate-content', label: 'specs' },
+    { from: 'card-fix-pinecone', to: 'card-populate-content', label: 'preceded' },
+    { from: 'card-populate-content', to: 'card-run-ingestion', label: 'enabled' },
+    { from: 'card-run-ingestion', to: 'card-qa-chatbot', label: 'blocks' },
   ];
 
   const svg = document.getElementById('connectors');
